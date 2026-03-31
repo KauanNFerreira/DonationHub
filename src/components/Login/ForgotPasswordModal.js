@@ -8,7 +8,6 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const modalRef = useRef(null);
-<<<<<<< HEAD
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -31,37 +30,19 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
     const handleClickOutside = (event) => {
       // Só verifica clique fora se o modal estiver completamente aberto
       if (isModalOpen && modalRef.current && !modalRef.current.contains(event.target)) {
-=======
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      // Verifica se o clique foi fora do modal e não em nenhum elemento do modal
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
->>>>>>> 9923b36d47e1ea779ff5dfdbc900a4380bd4e2b8
         onClose();
       }
     };
 
-<<<<<<< HEAD
     // Adiciona o evento apenas quando o modal estiver aberto
     if (isModalOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-=======
-    if (isOpen) {
-      // Adiciona o evento com um pequeno delay para não capturar o clique que abriu o modal
-      setTimeout(() => {
-        document.addEventListener('mousedown', handleClickOutside);
-      }, 100);
->>>>>>> 9923b36d47e1ea779ff5dfdbc900a4380bd4e2b8
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-<<<<<<< HEAD
   }, [isModalOpen, onClose]);
-=======
-  }, [isOpen, onClose]);
 
   // Focar no input quando o modal abrir
   useEffect(() => {
@@ -74,7 +55,6 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
       }
     }
   }, [isOpen]);
->>>>>>> 9923b36d47e1ea779ff5dfdbc900a4380bd4e2b8
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,15 +78,10 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
     }
   };
 
-<<<<<<< HEAD
   const handleModalClick = (e) => {
     // Impede que o clique no modal feche ele
     e.stopPropagation();
   };
-=======
-  if (!isOpen) return null;
->>>>>>> 9923b36d47e1ea779ff5dfdbc900a4380bd4e2b8
-
   if (!isOpen) return null;
 
   return (
@@ -115,25 +90,17 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
         <button 
           type="button"
           className="modal-close" 
-<<<<<<< HEAD
           onClick={(e) => {
             e.stopPropagation();
             onClose();
           }}
-=======
-          onClick={onClose}
->>>>>>> 9923b36d47e1ea779ff5dfdbc900a4380bd4e2b8
         >
           ×
         </button>
         
         <h2>Recuperar Senha</h2>
         
-<<<<<<< HEAD
         <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
-=======
-        <form onSubmit={handleSubmit}>
->>>>>>> 9923b36d47e1ea779ff5dfdbc900a4380bd4e2b8
           {error && <div className="error-message">{error}</div>}
           {message && <div className="success-message">{message}</div>}
           
@@ -156,10 +123,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
             type="submit" 
             className="forgot-button" 
             disabled={loading}
-<<<<<<< HEAD
             onClick={(e) => e.stopPropagation()}
-=======
->>>>>>> 9923b36d47e1ea779ff5dfdbc900a4380bd4e2b8
           >
             {loading ? 'Enviando...' : 'Enviar'}
           </button>
