@@ -1,0 +1,19 @@
+{
+  "files": {
+    "main.css": "/DonationHub/static/css/main.fbd2e48e.css",
+    "main.js": "/DonationHub/static/js/main.bbfa77e0.js",
+    "static/js/488.7194f95f.chunk.js": "/DonationHub/static/js/488.7194f95f.chunk.js",
+    "static/media/fa-solid-900.woff2": "/DonationHub/static/media/fa-solid-900.ce9a3fa740bd60b4ac3b.woff2",
+    "static/media/fa-brands-400.woff2": "/DonationHub/static/media/fa-brands-400.f276979f97f1cf375d23.woff2",
+    "static/media/fa-regular-400.woff2": "/DonationHub/static/media/fa-regular-400.cfbad32c79d9dda6af4a.woff2",
+    "static/media/fa-v4compatibility.woff2": "/DonationHub/static/media/fa-v4compatibility.296da06936a3373940c8.woff2",
+    "index.html": "/DonationHub/index.html",
+    "main.fbd2e48e.css.map": "/DonationHub/static/css/main.fbd2e48e.css.map",
+    "main.bbfa77e0.js.map": "/DonationHub/static/js/main.bbfa77e0.js.map",
+    "488.7194f95f.chunk.js.map": "/DonationHub/static/js/488.7194f95f.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.fbd2e48e.css",
+    "static/js/main.bbfa77e0.js"
+  ]
+}
