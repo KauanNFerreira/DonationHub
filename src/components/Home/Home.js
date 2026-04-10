@@ -150,25 +150,25 @@ const Home = ({ setCurrentPage, user, setUser }) => {
           </button>
           <button 
             className={`category-tag ${selectedCategory === 'Crianças' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('Animais')}
+            onClick={() => handleCategoryChange('Crianças')}
           >
             Crianças
           </button>
           <button 
             className={`category-tag ${selectedCategory === 'Idosos' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('Animais')}
+            onClick={() => handleCategoryChange('Idosos')}
           >
             Idosos
           </button>
           <button 
             className={`category-tag ${selectedCategory === 'Cultura' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('Animais')}
+            onClick={() => handleCategoryChange('Cultura')}
           >
             Cultura
           </button>
           <button 
             className={`category-tag ${selectedCategory === 'Esportes' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('Animais')}
+            onClick={() => handleCategoryChange('Esportes')}
           >
             Esportes
           </button>
