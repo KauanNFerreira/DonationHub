@@ -2,7 +2,7 @@
 
 .login-wrapper {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -20,7 +20,7 @@
   overflow: hidden;
   width: 768px;
   max-width: 100%;
-  min-height: 480px;
+  min-height: 550px;
 }
 
 .container p {
@@ -64,10 +64,36 @@
   background-color: #fff;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* Changed from center to avoid negative overflow scrolling bug */
   flex-direction: column;
-  padding: 0 40px;
+  padding: 20px 40px;
   height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Centering spacer that collapses cleanly when overflowing */
+.container form::before,
+.container form::after {
+  content: '';
+  margin: auto;
+}
+
+.container form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.container form::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.container form::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+
+.container form::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 .container input {
@@ -211,34 +237,39 @@
   transform: translateX(200%);
 }
 
-.modal-close {
+.container .modal-close {
   position: absolute;
   right: 15px;
   top: 15px;
-  transform: translateY(0%);
-  background: transparent;
-  border: none;
-  color: #666;
-  font-size: 30px;
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  color: #666 !important;
+  font-size: 30px !important;
   cursor: pointer;
   z-index: 1100;
-  width: auto; 
-  height: auto;
-  min-width: auto;
-  max-width: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
+  width: 40px !important; 
+  height: 40px !important;
+  min-width: auto !important;
+  max-width: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
   transition: all 0.3s ease;
   padding: 0 !important;  
   margin: 0 !important;
+  text-transform: none !important;
+  font-weight: normal !important;
+  letter-spacing: normal !important;
+  box-shadow: none !important;
+  transform: none;
 }
 
-.modal-close:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-  color: #333;
-  transform: rotate(90deg);
+.container .modal-close:hover {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  color: #333 !important;
+  transform: rotate(90deg) !important;
 }
 
 .password-wrapper {
@@ -286,6 +317,10 @@
 
 .toggle-password:hover i {
   color: #764ba2;
+}
+
+.mobile-toggle {
+  display: none;
 }
 
 .sign-in-btn, .sign-up-btn {
@@ -483,10 +518,10 @@
     color: white;
   }
 
-  .modal-close {
+  .container .modal-close {
     top: 10px;
     right: 10px;
-    font-size: 24px;
+    font-size: 24px !important;
   }
 
   .container input {

@@ -4,7 +4,6 @@ import HamburgerMenu from '../Menu/HamburgerMenu';
 import CompanyModal from './CompanyModal';
 import ProfileModal from '../Profile/ProfileModal';
 import HistoryModal from '../History/HistoryModal';
-import { supabase } from '../../supabaseClient';
 
 const companies = [
   { id: 1, name: 'Empresa A', pix: '11945957447', category: 'Saúde', description: 'Apoie hospitais e tratamentos' },
@@ -35,22 +34,22 @@ const Home = ({ setCurrentPage, user, setUser }) => {
 
   const loadDonations = async () => {
     if (!user) return;
-    
-    const { data, error } = await supabase
-      .from('donations')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    
-    if (data) {
-      setDonations(data);
-      const total = data.reduce((sum, donation) => sum + donation.amount, 0);
-      setTotalDonated(total);
+    try {
+      const stored = localStorage.getItem(`donations_${user.id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setDonations(parsed);
+        const total = parsed.reduce((sum, donation) => sum + donation.amount, 0);
+        setTotalDonated(total);
+      }
+    } catch (e) {
+      console.error('Erro ao carregar doações do localStorage:', e);
     }
   };
 
   const handleDonation = async (company, amount) => {
     const newDonation = {
+      id: Date.now(), // id temporário único
       user_id: user.id,
       company_name: company.name,
       company_pix: company.pix,
@@ -58,19 +57,20 @@ const Home = ({ setCurrentPage, user, setUser }) => {
       created_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabase
-      .from('donations')
-      .insert([newDonation])
-      .select();
+    const updatedDonations = [newDonation, ...donations];
+    setDonations(updatedDonations);
+    setTotalDonated(prev => prev + amount);
 
-    if (data) {
-      setDonations([data[0], ...donations]);
-      setTotalDonated(prev => prev + amount);
+    try {
+      localStorage.setItem(`donations_${user.id}`, JSON.stringify(updatedDonations));
+    } catch (e) {
+      console.error('Erro ao salvar doação no localStorage:', e);
     }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
     setCurrentPage('homepage');
   };
@@ -96,7 +96,7 @@ const Home = ({ setCurrentPage, user, setUser }) => {
       />
       
       <div className="home-header">
-        <h1>Bem-vindo, {user?.user_metadata?.name || 'Doador'}!</h1>
+        <h1>Bem-vindo, {user?.name || 'Doador'}!</h1>
         <div className="stats-cards">
           <div className="stat-card">
             <i className="fa-solid fa-hand-holding-heart"></i>

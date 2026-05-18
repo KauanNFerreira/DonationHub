@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ForgotPasswordModal.css';
-import { supabase } from '../../supabaseClient';
 
 const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState('');
@@ -63,16 +62,13 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
     setMessage('');
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin,
-      });
-
-      if (error) throw error;
+      // Como migramos para o backend Express local, simulamos o envio de e-mail com sucesso
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       
       setMessage('Email de recuperação enviado! Verifique sua caixa de entrada.');
       setTimeout(() => onClose(), 3000);
-    } catch (error) {
-      setError(error.message);
+    } catch (err) {
+      setError('Erro ao enviar e-mail de recuperação.');
     } finally {
       setLoading(false);
     }

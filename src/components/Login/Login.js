@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './Login.css';
 import ForgotPasswordModal from './ForgotPasswordModal';
-import { supabase } from '../../supabaseClient';
+import TermsModal from '../TermsModal/TermsModal';
+// Supabase removido para usar backend Node.js com SQLite
 
 const Login = ({ setCurrentPage, setUser }) => {
   const [formData, setFormData] = useState({
@@ -25,6 +26,14 @@ const Login = ({ setCurrentPage, setUser }) => {
   const [forgotModal, setForgotModal] = useState(false);
   const [isActive, setIsActive] = useState(false);
   
+  // Novos estados para o OTP (SQLite / Node Backend)
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  
+  // Estados para os Termos de Política
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  
   const containerRef = useRef(null);
   const modalRef = useRef(null);
 
@@ -46,26 +55,60 @@ const Login = ({ setCurrentPage, setUser }) => {
     setSuccessMsg('');
 
     try {
-      // Passo 1: Valida a senha (login normal)
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
       });
 
-      if (signInError) throw signInError;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao fazer login');
+      }
+
+      if (data.requireOtp) {
+        setShowOtpInput(true);
+        setSuccessMsg(data.message);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          code: otpCode
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Código inválido');
+      }
+
+      // Sucesso no login, salvar token
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       
-      // Passo 2: Desloga imediatamente (para forçar o 2FA via email)
-      await supabase.auth.signOut();
-
-      // Passo 3: Envia o Magic Link
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-      });
-
-      if (otpError) throw otpError;
-
-      // Mostra mensagem para o usuário ir para o e-mail
-      setSuccessMsg('Senha correta! Enviamos um link de confirmação para o seu e-mail. Clique no link para entrar no aplicativo.');
+      if (setUser) setUser(data.user);
+      setCurrentPage('home'); // Redireciona para o painel principal (dashboard)
     } catch (err) {
       setError(err.message);
     } finally {
@@ -78,6 +121,12 @@ const Login = ({ setCurrentPage, setUser }) => {
     setRegisterLoading(true);
     setRegisterError('');
 
+    if (!acceptedTerms) {
+      setRegisterError('Você deve aceitar os Termos de Política para se cadastrar.');
+      setRegisterLoading(false);
+      return;
+    }
+
     if (registerData.password !== registerData.confirmPassword) {
       setRegisterError('As senhas não coincidem');
       setRegisterLoading(false);
@@ -85,20 +134,25 @@ const Login = ({ setCurrentPage, setUser }) => {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email: registerData.email,
-        password: registerData.password,
-        options: {
-          data: {
-            name: registerData.name
-          }
-        }
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: registerData.name,
+          email: registerData.email,
+          password: registerData.password
+        })
       });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao cadastrar');
+      }
       
       alert('Cadastro realizado com sucesso! Faça seu login.');
       setIsActive(false);
+      setAcceptedTerms(false);
       setRegisterData({
         name: '',
         email: '',
@@ -157,21 +211,21 @@ const Login = ({ setCurrentPage, setUser }) => {
             />
             
             <div className="password-wrapper">
-  <input
-    type={showPassword ? "text" : "password"}
-    placeholder="Senha"
-    value={formData.password}
-    onChange={(e) => setFormData({...formData, password: e.target.value})}
-    required
-  />
-  <button
-    type="button"
-    className="toggle-password"
-    onClick={() => setShowPassword(!showPassword)}
-  >
-    <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-  </button>
-</div>
+              <input
+                type={showRegisterPassword ? "text" : "password"}
+                placeholder="Senha"
+                value={registerData.password}
+                onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
+                required
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+              >
+                <i className={`fa-regular ${showRegisterPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
+            </div>
             
             <div className="password-wrapper">
               <input
@@ -190,6 +244,19 @@ const Login = ({ setCurrentPage, setUser }) => {
               </button>
             </div>
             
+            <div className="terms-checkbox-container" style={{display: 'flex', alignItems: 'center', marginTop: '10px', marginBottom: '15px', width: '100%', justifyContent: 'center'}}>
+              <input 
+                type="checkbox" 
+                id="terms" 
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                style={{width: 'auto', marginRight: '8px', cursor: 'pointer'}}
+              />
+              <label htmlFor="terms" style={{fontSize: '12px', color: '#666', cursor: 'pointer'}}>
+                Eu li e aceito os <a href="#" onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }} style={{color: '#512da8', textDecoration: 'underline'}}>Termos e Política</a>
+              </label>
+            </div>
+            
             <button type="submit" className="sign-up-btn" disabled={registerLoading}>
               {registerLoading ? 'Cadastrando...' : 'Cadastrar'}
             </button>
@@ -197,51 +264,83 @@ const Login = ({ setCurrentPage, setUser }) => {
         </div>
 
         <div className="form-container sign-in">
-          <form onSubmit={handleSubmit} onKeyPress={(e) => handleKeyPress(e, 'login')}>
-            <h1>Entrar</h1>
-            <div className="social-icons">
-              <a href="#" className="icon"><i className="fa-brands fa-google-plus-g"></i></a>
-              <a href="#" className="icon"><i className="fa-brands fa-facebook-f"></i></a>
-              <a href="#" className="icon"><i className="fa-brands fa-github"></i></a>
-              <a href="#" className="icon"><i className="fa-brands fa-linkedin-in"></i></a>
-            </div>
-            <span>ou use seu email e senha</span>
-            
-            {error && <div className="error-message">{error}</div>}
-            {successMsg && <div className="success-message" style={{color: '#28a745', marginBottom: '15px', textAlign: 'center', fontSize: '14px'}}>{successMsg}</div>}
-            
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              required
-            />
-            
-            <div className="password-wrapper">
+          {!showOtpInput ? (
+            <form onSubmit={handleSubmit} onKeyPress={(e) => handleKeyPress(e, 'login')}>
+              <h1>Entrar</h1>
+              <div className="social-icons">
+                <a href="#" className="icon"><i className="fa-brands fa-google-plus-g"></i></a>
+                <a href="#" className="icon"><i className="fa-brands fa-facebook-f"></i></a>
+                <a href="#" className="icon"><i className="fa-brands fa-github"></i></a>
+                <a href="#" className="icon"><i className="fa-brands fa-linkedin-in"></i></a>
+              </div>
+              <span>ou use seu email e senha</span>
+              
+              {error && <div className="error-message">{error}</div>}
+              {successMsg && <div className="success-message" style={{color: '#28a745', marginBottom: '15px', textAlign: 'center', fontSize: '14px'}}>{successMsg}</div>}
+              
               <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Senha"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                type="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
                 required
               />
-              <button
-                type="button"
-                className="toggle-password"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              
+              <div className="password-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Senha"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  required
+                />
+                <button
+                  type="button"
+                  className="toggle-password"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                </button>
+              </div>
+              
+              <a href="#" onClick={(e) => { e.preventDefault(); setForgotModal(true); }}>Esqueceu sua senha?</a>
+              
+              <button type="submit" className={`sign-in-btn ${loading ? 'loading' : ''}`} disabled={loading}>
+                <span className="btn-text">Entrar</span>
+                <span className="spinner"></span>
               </button>
-            </div>
-            
-            <a href="#" onClick={(e) => { e.preventDefault(); setForgotModal(true); }}>Esqueceu sua senha?</a>
-            
-            <button type="submit" className={`sign-in-btn ${loading ? 'loading' : ''}`} disabled={loading}>
-              <span className="btn-text">Entrar</span>
-              <span className="spinner"></span>
-            </button>
-          </form>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp}>
+              <h1>Verificação de Segurança</h1>
+              <span style={{textAlign: 'center', margin: '15px 0', fontSize: '14px'}}>
+                Enviamos um código de 6 dígitos para <strong>{formData.email}</strong>.<br/>
+                Para fins de teste, olhe o terminal/console do backend.
+              </span>
+              
+              {error && <div className="error-message">{error}</div>}
+              {successMsg && <div className="success-message" style={{color: '#28a745', marginBottom: '15px', textAlign: 'center', fontSize: '14px'}}>{successMsg}</div>}
+              
+              <input
+                type="text"
+                placeholder="Código de 6 dígitos"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                maxLength="6"
+                required
+                style={{textAlign: 'center', fontSize: '20px', letterSpacing: '5px'}}
+              />
+              
+              <button type="submit" className={`sign-in-btn ${loading ? 'loading' : ''}`} disabled={loading || otpCode.length < 6}>
+                <span className="btn-text">Verificar Código</span>
+                <span className="spinner"></span>
+              </button>
+
+              <a href="#" onClick={(e) => { e.preventDefault(); setShowOtpInput(false); setSuccessMsg(''); setError(''); }} style={{marginTop: '15px'}}>
+                Voltar para o login
+              </a>
+            </form>
+          )}
         </div>
 
         <div className="toggle-container">
@@ -258,11 +357,34 @@ const Login = ({ setCurrentPage, setUser }) => {
             </div>
           </div>
         </div>
+
+        <div className="mobile-toggle">
+          <button 
+            type="button" 
+            className={`mobile-toggle-btn ${!isActive ? 'active' : ''}`}
+            onClick={() => setIsActive(false)}
+          >
+            Entrar
+          </button>
+          <button 
+            type="button" 
+            className={`mobile-toggle-btn ${isActive ? 'active' : ''}`}
+            onClick={() => setIsActive(true)}
+          >
+            Cadastrar
+          </button>
+        </div>
       </div>
 
       <ForgotPasswordModal 
         isOpen={forgotModal} 
         onClose={() => setForgotModal(false)} 
+      />
+
+      <TermsModal 
+        isOpen={showTermsModal} 
+        onClose={() => setShowTermsModal(false)} 
+        onAccept={() => setAcceptedTerms(true)}
       />
     </div>
   );

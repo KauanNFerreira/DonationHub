@@ -1,31 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
 import './App.css';
 import Home from './components/Home/Home';
 import Login from './components/Login/Login';
 import Register from './components/Register/Register';
+import CookieConsent from './components/CookieConsent/CookieConsent';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('homepage');
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Escuta mudanças de estado na autenticação, útil para retornos de Magic Links
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        setUser(session.user);
+    // Carrega o usuário salvo no localStorage se existir
+    const savedUser = localStorage.getItem('user');
+    const savedToken = localStorage.getItem('token');
+    if (savedUser && savedToken) {
+      try {
+        setUser(JSON.parse(savedUser));
         setCurrentPage('home');
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setCurrentPage('homepage');
+      } catch (error) {
+        console.error('Erro ao restaurar sessão:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
-    });
-
-    return () => {
-      if (authListener && authListener.subscription) {
-        authListener.subscription.unsubscribe();
-      }
-    };
+    }
   }, []);
 
   const renderPage = () => {
@@ -69,6 +66,7 @@ function App() {
   return (
     <div className="App">
       {renderPage()}
+      <CookieConsent />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './Register.css';
-import { supabase } from '../../supabaseClient';
+import TermsModal from '../TermsModal/TermsModal';
+// Supabase removido para usar backend Node.js com SQLite
 
 const Register = ({ setCurrentPage }) => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,10 @@ const Register = ({ setCurrentPage }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Estados para os Termos de Política
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   
   const modalRef = useRef(null);
 
@@ -32,6 +37,12 @@ const Register = ({ setCurrentPage }) => {
     setLoading(true);
     setError('');
 
+    if (!acceptedTerms) {
+      setError('Você deve aceitar os Termos de Política para se cadastrar.');
+      setLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('As senhas não coincidem');
       setLoading(false);
@@ -39,17 +50,21 @@ const Register = ({ setCurrentPage }) => {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            name: formData.name
-          }
-        }
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        })
       });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao cadastrar');
+      }
       
       alert('Cadastro realizado com sucesso! Faça seu login.');
       setCurrentPage('login');
@@ -124,9 +139,22 @@ const Register = ({ setCurrentPage }) => {
             >
               <i className={`fa-regular ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
             </button>
-          </div>
-          
-          <button type="submit" className="register-btn" disabled={loading}>
+            </div>
+            
+            <div className="terms-checkbox-container" style={{display: 'flex', alignItems: 'center', marginTop: '10px', marginBottom: '15px', width: '100%', justifyContent: 'center'}}>
+              <input 
+                type="checkbox" 
+                id="terms-register" 
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                style={{width: 'auto', marginRight: '8px', cursor: 'pointer'}}
+              />
+              <label htmlFor="terms-register" style={{fontSize: '12px', color: '#666', cursor: 'pointer'}}>
+                Eu li e aceito os <a href="#" onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }} style={{color: '#512da8', textDecoration: 'underline'}}>Termos e Política</a>
+              </label>
+            </div>
+            
+            <button type="submit" className="register-btn" disabled={loading}>
             {loading ? 'Cadastrando...' : 'Cadastrar'}
           </button>
         </form>
@@ -135,6 +163,12 @@ const Register = ({ setCurrentPage }) => {
           Já tem uma conta? <a href="#" onClick={(e) => { e.preventDefault(); setCurrentPage('login'); }}>Faça login</a>
         </p>
       </div>
+      
+      <TermsModal 
+        isOpen={showTermsModal} 
+        onClose={() => setShowTermsModal(false)} 
+        onAccept={() => setAcceptedTerms(true)}
+      />
     </div>
   );
 };

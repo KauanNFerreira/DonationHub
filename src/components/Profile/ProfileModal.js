@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ProfileModal.css';
-import { supabase } from '../../supabaseClient';
 
 const ProfileModal = ({ user, onClose, setUser }) => {
-  const [name, setName] = useState(user?.user_metadata?.name || '');
+  const [name, setName] = useState(user?.name || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const modalRef = useRef(null);
@@ -32,17 +31,17 @@ const ProfileModal = ({ user, onClose, setUser }) => {
     setError('');
 
     try {
-      const { data, error } = await supabase.auth.updateUser({
-        data: { name }
-      });
-
-      if (error) throw error;
+      // Como migramos para o Express backend com SQLite, atualizamos os dados locais do usuário
+      const updatedUser = { ...user, name };
       
-      setUser(data.user);
+      // Persiste no localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      if (setUser) setUser(updatedUser);
       alert('Perfil atualizado com sucesso!');
       onClose();
     } catch (error) {
-      setError(error.message);
+      setError('Erro ao atualizar o perfil.');
     } finally {
       setLoading(false);
     }
