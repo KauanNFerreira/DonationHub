@@ -21,6 +21,7 @@ const Login = ({ setCurrentPage, setUser }) => {
   const [registerLoading, setRegisterLoading] = useState(false);
   const [error, setError] = useState('');
   const [registerError, setRegisterError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [forgotModal, setForgotModal] = useState(false);
   const [isActive, setIsActive] = useState(false);
   
@@ -42,19 +43,31 @@ const Login = ({ setCurrentPage, setUser }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMsg('');
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Passo 1: Valida a senha (login normal)
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (error) throw error;
+      if (signInError) throw signInError;
       
-      setUser(data.user);
-      setCurrentPage('home');
-    } catch (error) {
-      setError(error.message);
+      // Passo 2: Desloga imediatamente (para forçar o 2FA via email)
+      await supabase.auth.signOut();
+
+      // Passo 3: Envia o Magic Link
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: formData.email,
+      });
+
+      if (otpError) throw otpError;
+
+      // Mostra mensagem para o usuário ir para o e-mail
+      setSuccessMsg('Senha correta! Enviamos um link de confirmação para o seu e-mail. Clique no link para entrar no aplicativo.');
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -195,6 +208,7 @@ const Login = ({ setCurrentPage, setUser }) => {
             <span>ou use seu email e senha</span>
             
             {error && <div className="error-message">{error}</div>}
+            {successMsg && <div className="success-message" style={{color: '#28a745', marginBottom: '15px', textAlign: 'center', fontSize: '14px'}}>{successMsg}</div>}
             
             <input
               type="email"
