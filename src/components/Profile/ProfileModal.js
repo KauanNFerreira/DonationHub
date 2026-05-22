@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import './ProfileModal.css';
 
 const ProfileModal = ({ user, onClose, setUser }) => {
-  const [name, setName] = useState(user?.name || '');
+  const [name, setName] = useState(user?.nome || user?.name || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const modalRef = useRef(null);
@@ -32,7 +32,7 @@ const ProfileModal = ({ user, onClose, setUser }) => {
 
     try {
       // Como migramos para o Express backend com SQLite, atualizamos os dados locais do usuário
-      const updatedUser = { ...user, name };
+      const updatedUser = { ...user, nome: name, name };
       
       // Persiste no localStorage
       localStorage.setItem('user', JSON.stringify(updatedUser));

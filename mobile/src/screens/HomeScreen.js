@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  ScrollView, 
-  TouchableOpacity, 
-  SafeAreaView, 
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
   StatusBar,
   Dimensions,
   Platform,
@@ -57,7 +57,7 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
   const [showProfile, setShowProfile] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showCompanyDonation, setShowCompanyDonation] = useState(false);
-  
+
   // Data states
   const [donations, setDonations] = useState([]);
   const [totalDonated, setTotalDonated] = useState(0);
@@ -101,7 +101,7 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
     try {
       await AsyncStorage.setItem(`donations_${user.id}`, JSON.stringify(updatedDonations));
       Alert.alert(
-        'Muito Obrigado!', 
+        'Muito Obrigado!',
         `Sua doação de R$ ${amount.toFixed(2)} para ${company.name} foi registrada com sucesso.`
       );
     } catch (e) {
@@ -110,14 +110,16 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
     }
   };
 
-  const filteredCompanies = selectedCategory === 'Todos' 
-    ? companies 
+  const filteredCompanies = selectedCategory === 'Todos'
+    ? companies
     : companies.filter(company => company.category === selectedCategory);
+
+  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f5f7ff" />
-      
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent={false} />
+
       {/* Top Navigation Bar */}
       <View style={styles.navBar}>
         <TouchableOpacity style={styles.menuBtn} onPress={() => setIsMenuOpen(true)}>
@@ -130,7 +132,7 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
       </View>
 
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-        
+
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeSubtitle}>Olá,</Text>
@@ -164,30 +166,30 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Filtrar por Causa</Text>
         </View>
-        
-        <ScrollView 
-          horizontal 
+
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.categoryScroll}
           contentContainerStyle={styles.categoryScrollContent}
         >
           {categories.map(cat => (
-            <TouchableOpacity 
-              key={cat} 
+            <TouchableOpacity
+              key={cat}
               style={[
-                styles.categoryBadge, 
+                styles.categoryBadge,
                 selectedCategory === cat && styles.categoryBadgeActive
               ]}
               onPress={() => setSelectedCategory(cat)}
             >
-              <FontAwesome6 
-                name={getCategoryIcon(cat)} 
-                size={12} 
-                color={selectedCategory === cat ? '#fff' : '#512da8'} 
+              <FontAwesome6
+                name={getCategoryIcon(cat)}
+                size={12}
+                color={selectedCategory === cat ? '#fff' : '#512da8'}
                 style={{ marginRight: 6 }}
               />
               <Text style={[
-                styles.categoryText, 
+                styles.categoryText,
                 selectedCategory === cat && styles.categoryTextActive
               ]}>
                 {cat}
@@ -215,9 +217,9 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
                 </View>
               </View>
               <Text style={styles.companyDesc}>{company.description}</Text>
-              
-              <TouchableOpacity 
-                style={styles.donateBtn} 
+
+              <TouchableOpacity
+                style={styles.donateBtn}
                 onPress={() => setSelectedCompany(company)}
               >
                 <Text style={styles.donateBtnText}>Doar Agora</Text>
@@ -230,7 +232,7 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
       </ScrollView>
 
       {/* Side Menu Drawer */}
-      <MenuDrawer 
+      <MenuDrawer
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
         setShowProfile={setShowProfile}
@@ -242,7 +244,7 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
 
       {/* Profile Modal */}
       {showProfile && (
-        <ProfileModal 
+        <ProfileModal
           user={user}
           onClose={() => setShowProfile(false)}
           setUser={setUser}
@@ -251,7 +253,7 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
 
       {/* History Modal */}
       {showHistory && (
-        <HistoryModal 
+        <HistoryModal
           donations={donations}
           onClose={() => setShowHistory(false)}
         />
@@ -259,7 +261,7 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
 
       {/* Company/Project Support Modal */}
       {showCompanyDonation && (
-        <CompanyModal 
+        <CompanyModal
           company={{ name: 'Nossa Empresa (DonationHub)', pix: '11945957447', description: 'Apoie o DonationHub para que possamos expandir nosso projeto e manter o aplicativo no ar!' }}
           onClose={() => setShowCompanyDonation(false)}
           onDonate={handleDonation}
@@ -268,7 +270,7 @@ const HomeScreen = ({ user, setUser, onLogout }) => {
 
       {/* Company Pix Modal */}
       {selectedCompany && (
-        <CompanyModal 
+        <CompanyModal
           company={selectedCompany}
           onClose={() => setSelectedCompany(null)}
           onDonate={handleDonation}
@@ -285,11 +287,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f7ff',
   },
   navBar: {
-    height: 56,
+    height: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 8 : 0,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
@@ -301,13 +304,13 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
       },
       android: {
-        elevation: 2,
+        elevation: 4,
       }
     }),
   },
   menuBtn: {
-    width: 36,
-    height: 36,
+    width: 55,
+    height: 55,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -318,8 +321,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   profileBtn: {
-    width: 36,
-    height: 36,
+    width: 55,
+    height: 55,
     alignItems: 'center',
     justifyContent: 'center',
   },

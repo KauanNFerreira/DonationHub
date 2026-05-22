@@ -96,7 +96,7 @@ const Home = ({ setCurrentPage, user, setUser }) => {
       />
       
       <div className="home-header">
-        <h1>Bem-vindo, {user?.name || 'Doador'}!</h1>
+        <h1>Bem-vindo, {user?.nome || user?.name || 'Doador'}!</h1>
         <div className="stats-cards">
           <div className="stat-card">
             <i className="fa-solid fa-hand-holding-heart"></i>

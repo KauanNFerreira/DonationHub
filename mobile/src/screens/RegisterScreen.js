@@ -16,6 +16,14 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { API_BASE_URL } from '../lib/config';
 import TermsModal from '../components/TermsModal';
 
+// Calcula a força da senha e retorna os critérios
+const checkPasswordStrength = (pwd) => ({
+  length:    pwd.length >= 8,
+  uppercase: /[A-Z]/.test(pwd),
+  number:    /[0-9]/.test(pwd),
+  special:   /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd),
+});
+
 const RegisterScreen = ({ onNavigate }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,6 +38,11 @@ const RegisterScreen = ({ onNavigate }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const strength = checkPasswordStrength(password);
+  const strengthScore = Object.values(strength).filter(Boolean).length; // 0-4
+  const strengthColors = ['#e0e0e0', '#ef5350', '#ffa726', '#66bb6a', '#512da8'];
+  const strengthLabels = ['', 'Fraca', 'Razoável', 'Boa', 'Forte'];
+
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
       setErrorMsg('Preencha todos os campos!');
@@ -38,6 +51,23 @@ const RegisterScreen = ({ onNavigate }) => {
 
     if (!acceptedTerms) {
       setErrorMsg('Você deve aceitar os Termos de Política para se cadastrar.');
+      return;
+    }
+
+    if (!strength.length) {
+      setErrorMsg('A senha deve ter pelo menos 8 caracteres!');
+      return;
+    }
+    if (!strength.uppercase) {
+      setErrorMsg('A senha deve conter pelo menos uma letra maiúscula!');
+      return;
+    }
+    if (!strength.number) {
+      setErrorMsg('A senha deve conter pelo menos um número!');
+      return;
+    }
+    if (!strength.special) {
+      setErrorMsg('A senha deve conter pelo menos um caractere especial (ex: !@#$%)!');
       return;
     }
 
@@ -147,6 +177,7 @@ const RegisterScreen = ({ onNavigate }) => {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  textContentType="oneTimeCode"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
@@ -170,6 +201,49 @@ const RegisterScreen = ({ onNavigate }) => {
                   <FontAwesome6 name={showConfirmPassword ? "eye" : "eye-slash"} size={16} color="#512da8" />
                 </TouchableOpacity>
               </View>
+
+              {/* Indicador de Força da Senha */}
+              {password.length > 0 && (
+                <View style={styles.strengthContainer}>
+                  {/* Barras de força */}
+                  <View style={styles.strengthBars}>
+                    {[1,2,3,4].map(i => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.strengthBar,
+                          { backgroundColor: i <= strengthScore ? strengthColors[strengthScore] : '#e0e0e0' }
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  <Text style={[styles.strengthLabel, { color: strengthColors[strengthScore] }]}>
+                    {strengthLabels[strengthScore]}
+                  </Text>
+
+                  {/* Checklist de requisitos */}
+                  <View style={styles.requirementsList}>
+                    {[
+                      { key: 'length',    label: 'Mínimo 8 caracteres' },
+                      { key: 'uppercase', label: 'Uma letra maiúscula' },
+                      { key: 'number',    label: 'Um número' },
+                      { key: 'special',   label: 'Um caractere especial (!@#$%)' },
+                    ].map(req => (
+                      <View key={req.key} style={styles.requirementItem}>
+                        <FontAwesome6
+                          name={strength[req.key] ? 'circle-check' : 'circle-xmark'}
+                          size={13}
+                          color={strength[req.key] ? '#66bb6a' : '#bbb'}
+                        />
+                        <Text style={[
+                          styles.requirementText,
+                          strength[req.key] && styles.requirementMet
+                        ]}>{req.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
 
               {/* Checkbox Termos */}
               <View style={styles.checkboxContainer}>
@@ -300,6 +374,46 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
     gap: 16,
+  },
+  strengthContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 10,
+  },
+  strengthBars: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  strengthBar: {
+    flex: 1,
+    height: 5,
+    borderRadius: 4,
+  },
+  strengthLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'right',
+    marginTop: -6,
+  },
+  requirementsList: {
+    gap: 6,
+    marginTop: 4,
+  },
+  requirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  requirementText: {
+    fontSize: 12,
+    color: '#aaa',
+  },
+  requirementMet: {
+    color: '#66bb6a',
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',

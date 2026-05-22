@@ -1,6 +1,10 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 const { Database } = require('@sqlitecloud/drivers');
+const { sendOTPEmail } = require('./emailService');
+
+const SALT_ROUNDS = 12; // Quanto maior, mais seguro (e mais lento)
 
 const app = express();
 app.use(cors());
@@ -41,6 +45,12 @@ async function initDatabase() {
 }
 initDatabase();
 
+// Função auxiliar para validar formato de e-mail usando Expressão Regular
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
 // ========== ROTAS DA API DE AUTENTICAÇÃO ==========
 
 // 1. Rota de Cadastro (Register)
@@ -51,24 +61,45 @@ app.post('/api/auth/register', async (req, res) => {
         return res.status(400).json({ error: 'Preencha todos os campos obrigatórios!' });
     }
 
+    if (!isValidEmail(email.trim())) {
+        return res.status(400).json({ error: 'Por favor, insira um e-mail com formato válido!' });
+    }
+
+    // Validação de força da senha
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'A senha deve ter pelo menos 8 caracteres!' });
+    }
+    if (!/[A-Z]/.test(password)) {
+        return res.status(400).json({ error: 'A senha deve conter pelo menos uma letra maiúscula!' });
+    }
+    if (!/[0-9]/.test(password)) {
+        return res.status(400).json({ error: 'A senha deve conter pelo menos um número!' });
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        return res.status(400).json({ error: 'A senha deve conter pelo menos um caractere especial (ex: !@#$%)!' });
+    }
+
     try {
-        // Verificar se o usuário já existe
+        // Verificar se o e-mail já está cadastrado
         const existing = await db.sql`
-            SELECT * FROM usuarios WHERE email = ${email.trim()};
+            SELECT id FROM usuarios WHERE email = ${email.trim()};
         `;
 
         if (existing && existing.length > 0) {
             return res.status(400).json({ error: 'Este e-mail já está cadastrado!' });
         }
 
-        // Inserir novo usuário
+        // Criptografar a senha com bcrypt antes de salvar
+        const senhaHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+        // Inserir novo usuário com senha criptografada
         const resultado = await db.sql`
             INSERT INTO usuarios (nome, email, senha) 
-            VALUES (${name.trim()}, ${email.trim()}, ${password});
+            VALUES (${name.trim()}, ${email.trim()}, ${senhaHash});
         `;
 
         console.log(`👤 Novo usuário cadastrado: ${name.trim()} (${email.trim()})`);
-        res.json({ success: true, id: resultado.lastInsertRowid || 1 });
+        res.json({ success: true, id: resultado.lastID || 1 });
     } catch (error) {
         console.error('Erro no cadastro:', error);
         res.status(500).json({ error: 'Erro interno ao realizar cadastro: ' + error.message });
@@ -83,12 +114,23 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(400).json({ error: 'E-mail e senha são obrigatórios!' });
     }
 
+    if (!isValidEmail(email.trim())) {
+        return res.status(400).json({ error: 'Por favor, insira um e-mail com formato válido!' });
+    }
+
     try {
+        // Buscar usuário pelo e-mail (a senha será comparada via bcrypt)
         const users = await db.sql`
-            SELECT * FROM usuarios WHERE email = ${email.trim()} AND senha = ${password};
+            SELECT * FROM usuarios WHERE email = ${email.trim()};
         `;
 
         if (!users || users.length === 0) {
+            return res.status(401).json({ error: 'E-mail ou senha inválidos!' });
+        }
+
+        // Comparar a senha digitada com o hash armazenado no banco
+        const senhaCorreta = await bcrypt.compare(password, users[0].senha);
+        if (!senhaCorreta) {
             return res.status(401).json({ error: 'E-mail ou senha inválidos!' });
         }
 
@@ -106,15 +148,12 @@ app.post('/api/auth/login', async (req, res) => {
             VALUES (${email.trim()}, ${otpCode});
         `;
 
-        // Exibir o código no terminal de forma destacada para que o estudante possa copiar
-        console.log(`\n=============================================`);
-        console.log(`🔑 CÓDIGO DE VERIFICAÇÃO OTP PARA ${email.trim()}:`);
-        console.log(`👉   ${otpCode}   👈`);
-        console.log(`=============================================\n`);
+        // Enviar o código OTP real por email para o usuário (com fallback para o terminal)
+        await sendOTPEmail(email.trim(), otpCode);
 
         res.json({ 
             requireOtp: true, 
-            message: `Código de verificação enviado para ${email.trim()}! Verifique o console do terminal.` 
+            message: `Código de verificação enviado para ${email.trim()}! Verifique seu e-mail (ou o terminal do backend).` 
         });
 
     } catch (error) {
@@ -165,6 +204,7 @@ app.post('/api/auth/verify', async (req, res) => {
             user: {
                 id: user.id,
                 nome: user.nome,
+                name: user.nome, // Para compatibilidade com o front-end web antigo
                 email: user.email
             }
         });
