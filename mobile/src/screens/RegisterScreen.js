@@ -35,6 +35,10 @@ const RegisterScreen = ({ onNavigate }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // Controle de etapas do cadastro: 'form' = formulário | 'otp' = confirmação de e-mail
+  const [step, setStep] = useState('form');
+  const [otpCode, setOtpCode] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -81,9 +85,9 @@ const RegisterScreen = ({ onNavigate }) => {
     setErrorMsg('');
 
     try {
-      console.log(`Tentando registrar no backend em: ${API_BASE_URL}/api/auth/register`);
-      
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      console.log(`Enviando OTP de cadastro para: ${email.trim()}`);
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/register/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,14 +100,12 @@ const RegisterScreen = ({ onNavigate }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao realizar cadastro');
+        throw new Error(data.error || 'Erro ao iniciar cadastro');
       }
 
-      Alert.alert(
-        'Sucesso!', 
-        'Cadastro realizado com sucesso! Faça seu login.',
-        [{ text: 'OK', onPress: () => onNavigate('login') }]
-      );
+      // Avançar para a etapa de confirmação de OTP
+      setStep('otp');
+      setOtpCode('');
     } catch (error) {
       console.error('Erro de cadastro:', error);
       setErrorMsg(error.message || 'Não foi possível conectar ao servidor.');
@@ -112,6 +114,141 @@ const RegisterScreen = ({ onNavigate }) => {
     }
   };
 
+  // Etapa 2: confirmar o código OTP recebido por e-mail
+  const handleConfirmOtp = async () => {
+    if (!otpCode || otpCode.length < 6) {
+      setErrorMsg('Digite o código de 6 dígitos recebido no seu e-mail.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), code: otpCode.trim() })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Código inválido');
+      }
+
+      Alert.alert(
+        'Conta criada! 🎉',
+        'Seu e-mail foi verificado e sua conta foi criada com sucesso! Faça seu login.',
+        [{ text: 'Fazer Login', onPress: () => onNavigate('login') }]
+      );
+    } catch (error) {
+      console.error('Erro ao confirmar OTP:', error);
+      setErrorMsg(error.message || 'Não foi possível confirmar o código.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reenviar o código OTP
+  const handleResendOtp = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    setOtpCode('');
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/register/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), password })
+      });
+      Alert.alert('Código reenviado!', `Um novo código foi enviado para ${email.trim()}.`);
+    } catch (e) {
+      setErrorMsg('Não foi possível reenviar o código.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ===== ETAPA 2: Confirmação de OTP =====
+  if (step === 'otp') {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+
+            {/* Botão Voltar */}
+            <TouchableOpacity style={styles.backButton} onPress={() => { setStep('form'); setErrorMsg(''); }}>
+              <FontAwesome6 name="arrow-left" size={20} color="#512da8" />
+            </TouchableOpacity>
+
+            <View style={styles.content}>
+              {/* Header */}
+              <View style={styles.header}>
+                <View style={styles.logo}>
+                  <FontAwesome6 name="envelope-circle-check" size={32} color="#fff" />
+                </View>
+                <Text style={styles.title}>Verifique seu E-mail</Text>
+                <Text style={styles.subtitle}>
+                  Enviamos um código de 6 dígitos para{`\n`}
+                  <Text style={{ color: '#512da8', fontWeight: 'bold' }}>{email.trim()}</Text>
+                </Text>
+              </View>
+
+              {/* Error Banner */}
+              {errorMsg ? (
+                <View style={styles.errorContainer}>
+                  <FontAwesome6 name="circle-exclamation" size={16} color="#c62828" />
+                  <Text style={styles.errorText}>{errorMsg}</Text>
+                </View>
+              ) : null}
+
+              <View style={styles.form}>
+                {/* Campo do código OTP */}
+                <View style={styles.inputContainer}>
+                  <FontAwesome6 name="shield-halved" size={16} color="#666" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { letterSpacing: 6, fontSize: 20, fontWeight: 'bold' }]}
+                    placeholder="000000"
+                    value={otpCode}
+                    onChangeText={setOtpCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    autoFocus
+                  />
+                </View>
+
+                {/* Botão confirmar */}
+                <TouchableOpacity
+                  style={[styles.submitButton, loading && styles.buttonDisabled]}
+                  onPress={handleConfirmOtp}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Confirmar e Criar Conta</Text>
+                  )}
+                </TouchableOpacity>
+
+                {/* Reenviar código */}
+                <TouchableOpacity style={styles.loginLink} onPress={handleResendOtp} disabled={loading}>
+                  <Text style={styles.loginLinkText}>
+                    Não recebeu? <Text style={styles.loginLinkTextBold}>Reenviar código</Text>
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  // ===== ETAPA 1: Formulário de cadastro =====
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView 

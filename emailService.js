@@ -1,11 +1,11 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-const smtpConfigured = 
-    process.env.SMTP_HOST && 
-    process.env.SMTP_USER && 
-    process.env.SMTP_USER !== 'seu-email@gmail.com' && 
-    process.env.SMTP_PASS && 
+const smtpConfigured =
+    process.env.SMTP_HOST &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_USER !== 'seu-email@gmail.com' &&
+    process.env.SMTP_PASS &&
     process.env.SMTP_PASS !== 'sua-senha-de-app-ou-token';
 
 async function sendOTPEmail(toEmail, otpCode) {
@@ -56,12 +56,9 @@ async function sendOTPEmail(toEmail, otpCode) {
         return true;
     } catch (error) {
         console.error(`❌ Erro ao enviar e-mail OTP para ${toEmail}:`, error.message);
-        // Fallback para o console para que o desenvolvedor/estudante não fique travado
-        console.log(`\n=============================================`);
-        console.log(`🔑 FALLBACK - CÓDIGO OTP PARA ${toEmail.trim()}:`);
-        console.log(`👉   ${otpCode}   👈`);
-        console.log(`=============================================\n`);
-        return false;
+        // Lança o erro para que o cadastro/login falhe corretamente
+        // Nunca exibir o código no console em produção!
+        throw new Error('Não foi possível enviar o e-mail de verificação. Verifique se o endereço de e-mail existe e tente novamente.');
     }
 }
 
